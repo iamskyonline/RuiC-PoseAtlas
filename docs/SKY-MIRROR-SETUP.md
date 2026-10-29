@@ -35,11 +35,14 @@ git rev-parse HEAD
 git rev-parse upstream/main
 ```
 
-## GitHub Pages
-仓库内原有 `deploy-pages.yml` 可部署网站；额外的同步工作流也预留了可选部署。
-为满足仅本机自用的当前目标，建议保持 GitHub Pages 关闭，并保持原有部署工作流禁用。
-`ENABLE_PUBLIC_PAGES` 仓库 Actions 变量默认为未设置（关闭）；只有明确决定对公网发布、确认适用许可并完成配置后才设为 `true`。
-注意：GitHub Pages 网站 URL 可以被互联网上的其他人访问，而本机的 `127.0.0.1:8123` 不对公网开放。
+## GitHub Pages（2026-10-29 已发布）
+- 在线地址：`https://iamskyonline.github.io/RuiC-PoseAtlas/`
+- GitHub Pages Source：GitHub Actions（`build_type=workflow`）。
+- 原有 `deploy-pages.yml` 已启用，可通过 Actions 手动重新发布；网站文件改动推送到 `main` 也会触发部署。
+- 仓库 Actions 变量 `ENABLE_PUBLIC_PAGES=true`，每日上游同步校验通过后可在同一条同步工作流内重新发布，避免依赖 GitHub Actions 机器人推送触发其他工作流。
+- 验收：第一次部署工作流 `40888591797` 成功，页面访问 HTTP 200。
+- 注意：这是公共 GitHub Pages 地址，具有网址的互联网用户均可访问，而 `127.0.0.1:8123` 仅在本机提供服务。
+- 关闭公开部署时，应禁用 `deploy-pages.yml`、移除或设为 false 的 `ENABLE_PUBLIC_PAGES`，并在 GitHub Pages 设置中取消发布站点。
 
 ## GitHub 授权与维护
 GitHub 登录使用 Mac 上的 `gh auth login --web`，在 GitHub 浏览器页面批准，不把账号密码或令牌放进仓库。

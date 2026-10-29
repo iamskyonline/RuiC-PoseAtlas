@@ -1,0 +1,85 @@
+name: Sync upstream (validated)
+
+on:
+  schedule:
+    # 01:27 UTC = 10:27 Asia/Tokyo; scheduled workflows may be delayed.
+    - cron: '27 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ruic-upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Merge upstream and verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout fork main with history
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Merge upstream without destructive reset
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/HRuiCcc/RuiC-PoseAtlas.git
+          git fetch --no-tags upstream main
+          git merge --no-edit upstream/main
+
+      - name: Verify site files match upstream exactly
+        run: git diff --exit-code upstream/main -- index.html assets data img thumbs og-cover.jpg robots.txt .nojekyll
+
+      - name: Verify all images, data and translations
+        run: npm run verify
+
+      - name: Push validated main (no force)
+        run: git push origin HEAD:main
+
+  build:
+    name: Build optional Pages artifact
+    needs: sync
+    if: ${{ vars.ENABLE_PUBLIC_PAGES == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout latest verified main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Stage site
+        run: |
+          mkdir -p _site
+          cp index.html og-cover.jpg robots.txt .nojekyll _site/
+          cp -R assets data img thumbs _site/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy optional GitHub Pages
+    needs: build
+    if: ${{ vars.ENABLE_PUBLIC_PAGES == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
